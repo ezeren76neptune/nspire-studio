@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-nspire-studio">
+    <comment>Nspire Studio document</comment>
+    <sub-class-of type="application/json"/>
+    <icon name="nspire-studio"/>
+    <glob pattern="*.nsnotes"/>
+  </mime-type>
+</mime-info>

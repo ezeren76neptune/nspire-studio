@@ -1,0 +1,6 @@
+[submodule "vendor/libnspire"]
+	path = vendor/libnspire
+	url = https://github.com/Vogtinator/libnspire.git
+[submodule "vendor/luna"]
+	path = vendor/luna
+	url = https://github.com/ndless-nspire/Luna.git

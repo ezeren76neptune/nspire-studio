@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+native/
+dist/
+build/
+projects/
+*.tns
+packaging/windows/*.ico
+packaging/windows/version.txt

@@ -1,0 +1,113 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    name: Debian / Ubuntu (.deb)
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git build-essential autoconf automake \
+            libtool pkg-config libusb-1.0-0-dev zlib1g-dev dpkg-dev
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Build
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          ./scripts/build-native.sh
+          ./packaging/linux/build-deb.sh "$(cat VERSION)"
+      - name: Install and smoke test
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ./dist/*.deb
+          QT_QPA_PLATFORM=offscreen python3 scripts/ci/smoke-test.py
+      - uses: actions/upload-artifact@v4
+        with: { name: deb, path: dist/*.deb }
+
+  rpm:
+    name: Fedora (.rpm)
+    runs-on: ubuntu-latest
+    container: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Install build tools
+        run: |
+          dnf install -y -q git gcc gcc-c++ make autoconf automake libtool pkgconf-pkg-config \
+            libusb1-devel zlib-ng-compat-devel rpm-build findutils
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Build
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          ./scripts/build-native.sh
+          ./packaging/linux/build-rpm.sh "$(cat VERSION)"
+      - name: Install and smoke test
+        run: |
+          dnf install -y -q ./dist/*.rpm
+          QT_QPA_PLATFORM=offscreen python3 scripts/ci/smoke-test.py
+      - uses: actions/upload-artifact@v4
+        with: { name: rpm, path: dist/*.rpm }
+
+  windows:
+    name: Windows (.exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git make autoconf automake libtool
+            mingw-w64-x86_64-gcc mingw-w64-x86_64-libusb mingw-w64-x86_64-zlib mingw-w64-x86_64-pkgconf
+      - name: Build libnspire and Luna
+        shell: msys2 {0}
+        run: ./scripts/build-native.sh
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install Python packages
+        run: pip install pyside6 pillow pyinstaller
+      - name: Smoke test
+        env: { QT_QPA_PLATFORM: offscreen }
+        run: python scripts/ci/smoke-test.py .
+      - name: Build app with PyInstaller
+        run: |
+          python packaging/windows/make-ico.py
+          python packaging/windows/make-version.py
+          pyinstaller --noconfirm --distpath build/pyinstaller/dist --workpath build/pyinstaller/work packaging/windows/nspire-studio.spec
+      - name: Build installer and portable zip
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION).Trim()
+          $env:APP_VERSION = $v
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress | Out-Null }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc packaging/windows/installer.iss
+          Compress-Archive -Path build/pyinstaller/dist/NspireStudio -DestinationPath "dist/NspireStudio-$v-Windows-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: "dist/*" }
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [deb, rpm, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          body_path: packaging/RELEASE_NOTES.md

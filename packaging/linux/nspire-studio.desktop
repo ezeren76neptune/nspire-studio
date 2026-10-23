@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Nspire Studio
+GenericName=Calculator Notes Editor
+Comment=Make notes, equations, graphs and calculators for your TI-Nspire and send them over USB
+Exec=nspire-studio %F
+Icon=nspire-studio
+Terminal=false
+StartupWMClass=nspire-studio
+StartupNotify=true
+Categories=Education;Math;
+Keywords=TI;Nspire;calculator;notes;
+MimeType=application/x-nspire-studio;

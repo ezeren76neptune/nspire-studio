@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nspire Studio</title>
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+<script>
+  window.MathJax = { svg: { fontCache: 'none' }, startup: { typeset: false } };
+</script>
+<script src="vendor/tex-svg.js" defer></script>
+<script src="vendor/math.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <img src="icon.svg" width="26" height="26" alt="">
+    Nspire Studio
+  </div>
+  <nav class="views">
+    <button data-view="editor" class="active">Editor</button>
+    <button data-view="calc">Calculator <span id="navBadge" class="badge hidden"></span></button>
+  </nav>
+  <div class="conn">
+    <span id="connDot" class="dot"></span>
+    <div class="conn-text">
+      <div id="connTitle">Checking…</div>
+      <div id="connSub" class="muted small"></div>
+    </div>
+    <button id="connBtn" class="btn primary">Connect</button>
+  </div>
+</header>
+
+<main>
+  <!-- ======================= EDITOR ======================= -->
+  <section id="view-editor" class="view">
+    <aside class="side">
+      <div class="side-head">
+        <h3>Documents</h3>
+        <button id="newDoc" class="btn small">+ New</button>
+      </div>
+      <div class="file-btns">
+        <button id="openFile" class="btn small" title="Open a .nsnotes file (Ctrl+O)">Open file…</button>
+        <button id="saveFile" class="btn small" title="Save this document as a .nsnotes file (Ctrl+Shift+S)">Save to file…</button>
+      </div>
+      <ul id="projList" class="proj-list"></ul>
+
+      <h3>Document</h3>
+      <label class="field">Title<input id="docTitle"></label>
+      <label class="field">Angle mode
+        <select id="docAngle"><option value="rad">Radians</option><option value="deg">Degrees</option></select>
+      </label>
+      <div class="colors">
+        <label>Page<input type="color" id="thBg"></label>
+        <label>Text<input type="color" id="thFg"></label>
+        <label>Accent<input type="color" id="thAccent"></label>
+        <label>Tab bar<input type="color" id="thTabbg"></label>
+      </div>
+      <button id="delDoc" class="btn small danger ghost">Delete document</button>
+      <p id="saveState" class="muted small"></p>
+    </aside>
+
+    <div class="center">
+      <div class="tabstrip" id="tabStrip"></div>
+      <div class="addbar" id="addBar">
+        <span class="muted small">Add:</span>
+        <button data-add="heading">Heading</button>
+        <button data-add="text">Text</button>
+        <button data-add="equation">Equation</button>
+        <button data-add="image">Image</button>
+        <button data-add="graph">Graph</button>
+        <button data-add="input">Input</button>
+        <button data-add="output">Output</button>
+        <button data-add="divider">Divider</button>
+        <button data-add="spacer">Space</button>
+      </div>
+      <div id="items" class="items"></div>
+    </div>
+
+    <aside class="right">
+      <div class="viewer-head">
+        <h3>Calculator view</h3>
+        <div class="seg" id="zoomSeg">
+          <button data-z="1">1×</button><button data-z="2" class="active">2×</button><button data-z="3">3×</button>
+        </div>
+      </div>
+      <div class="device" id="device">
+        <div class="device-screen">
+          <div class="docbar"><span class="docbar-tab">1.1</span><span id="docbarTitle"></span><span class="docbar-mode" id="docbarMode">RAD</span></div>
+          <canvas id="screen" width="318" height="212" tabindex="0"></canvas>
+        </div>
+      </div>
+      <p class="muted small hint">Click the screen to use it like the calculator: <kbd>◀</kbd><kbd>▶</kbd> switch tabs, <kbd>▲</kbd><kbd>▼</kbd> scroll, <kbd>Tab</kbd> next input, type to enter values.</p>
+      <ul id="fitNotes" class="fit-notes"></ul>
+
+      <div class="send card">
+        <h3>Send to calculator</h3>
+        <label class="field">Folder on calculator
+          <input id="sendFolder" list="folderList" placeholder="/Notes">
+          <datalist id="folderList"></datalist>
+        </label>
+        <label class="field">File name<input id="sendName" placeholder="notes"></label>
+        <div class="row">
+          <button id="sendBtn" class="btn primary grow">Send to calculator</button>
+          <button id="dlBtn" class="btn" title="Download the .tns file">.tns</button>
+        </div>
+        <p id="sendMsg" class="small"></p>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ======================= CALCULATOR ======================= -->
+  <section id="view-calc" class="view hidden">
+    <div class="calc-grid">
+      <div class="card" id="devCard">
+        <h3>Connected calculator</h3>
+        <div id="devInfo" class="devinfo muted">Not connected.</div>
+      </div>
+      <div class="card shot">
+        <div class="row between"><h3>Screen</h3><button id="shotBtn" class="btn small">Take screenshot</button></div>
+        <div class="shot-box"><img id="shotImg" alt="Calculator screenshot"><span id="shotEmpty" class="muted small">Connect, then take a screenshot to see what's on the calculator.</span></div>
+      </div>
+      <div class="card files">
+        <div class="row between wrap">
+          <h3>Files</h3>
+          <div class="row">
+            <button id="fsUp" class="btn small" title="Up one folder">↑ Up</button>
+            <button id="fsRefresh" class="btn small">Refresh</button>
+            <button id="fsMkdir" class="btn small">New folder</button>
+            <label class="btn small">Upload files<input type="file" id="fsUpload" multiple hidden></label>
+          </div>
+        </div>
+        <div id="crumbs" class="crumbs"></div>
+        <div class="table-wrap">
+          <table class="fs">
+            <thead><tr><th>Name</th><th class="num">Size</th><th>Modified</th><th></th></tr></thead>
+            <tbody id="fsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+<input type="file" id="imgPicker" accept="image/*" hidden>
+<input type="file" id="docPicker" accept=".nsnotes,.json,application/json" hidden>
+<div id="dropHint" class="drop-hint hidden">Drop a .nsnotes file to open it</div>
+</body>
+</html>
