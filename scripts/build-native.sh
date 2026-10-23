@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build libnspire (USB) and Luna (.tns packer) into ./native.
 # Linux: needs gcc, g++, make, autoconf, automake, libtool, pkg-config, libusb-1.0 and zlib headers.
-# Windows: run inside an MSYS2 MINGW64 shell (see .github/workflows/release.yml).
+# Windows: run inside an MSYS2 UCRT64 shell (see .github/workflows/release.yml).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/native"
@@ -48,7 +48,7 @@ fi
 # --- Windows runtime DLLs (libusb, libgcc, libstdc++, winpthread...) ----------
 if [ "$WIN" = 1 ]; then
   for f in "$OUT"/*.dll "$OUT"/luna.exe; do
-    ldd "$f" | awk '/mingw64/ {print $3}' | while read -r dll; do cp -n "$dll" "$OUT/"; done
+    ldd "$f" | awk '/\/(mingw64|ucrt64|clang64)\// {print $3}' | while read -r dll; do cp -n "$dll" "$OUT/"; done
   done
 fi
 echo "Built into $OUT:"; ls -la "$OUT"

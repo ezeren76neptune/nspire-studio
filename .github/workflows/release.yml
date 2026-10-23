@@ -65,11 +65,12 @@ jobs:
         with: { submodules: true }
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
             git make autoconf automake libtool
-            mingw-w64-x86_64-gcc mingw-w64-x86_64-libusb mingw-w64-x86_64-zlib mingw-w64-x86_64-pkgconf
+          pacboy: >-
+            gcc:p libusb:p zlib:p pkgconf:p
       - name: Build libnspire and Luna
         shell: msys2 {0}
         run: ./scripts/build-native.sh
