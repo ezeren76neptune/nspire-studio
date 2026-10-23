@@ -251,10 +251,45 @@ local function drawTabs(gc)
   end
 end
 
+local function niceStep(span)
+  local p = 10 ^ math.floor(math.log10(span / 5))
+  for _, m in ipairs({ 1, 2, 5, 10 }) do
+    if span / (m * p) <= 6 then return m * p end
+  end
+  return 10 * p
+end
+
+local function fmtNum(v)
+  if math.abs(v) < 1e-12 then return "0" end
+  local s = string.format("%.4g", v)
+  return s
+end
+
 local function drawGraph(gc, key, e, x, y, w, h)
   setc(gc, 0xFFFFFF); gc:fillRect(x, y, w, h)
+  local data = graphData(key, e)
+  local ymin, ymax = e.ymin, e.ymax
+  local gy = e.gy or 1
+  if e.yauto then
+    local lo, hi
+    for _, d in ipairs(data) do
+      for k = 0, d.n do
+        local v = d.pts[k]
+        if v and v == v and v > -1e300 and v < 1e300 then
+          lo = lo and math.min(lo, v) or v
+          hi = hi and math.max(hi, v) or v
+        end
+      end
+    end
+    if lo then
+      if hi - lo < 1e-12 * math.max(1, math.abs(hi)) then lo, hi = lo - 1, hi + 1 end
+      local pad = (hi - lo) * 0.08
+      ymin, ymax = lo - pad, hi + pad
+      gy = niceStep(ymax - ymin)
+    end
+  end
   local function sx(v) return x + (v - e.xmin) / (e.xmax - e.xmin) * (w - 1) end
-  local function sy(v) return y + h - 1 - (v - e.ymin) / (e.ymax - e.ymin) * (h - 1) end
+  local function sy(v) return y + h - 1 - (v - ymin) / (ymax - ymin) * (h - 1) end
   gc:clipRect("set", x, y, w, h)
   if e.grid then
     setc(gc, 0xE4E4E4)
@@ -262,15 +297,13 @@ local function drawGraph(gc, key, e, x, y, w, h)
     if (e.xmax - e.xmin) / gx < 60 then
       for v = math.ceil(e.xmin / gx) * gx, e.xmax, gx do gc:drawLine(sx(v), y, sx(v), y + h) end
     end
-    local gy = e.gy or 1
-    if (e.ymax - e.ymin) / gy < 60 then
-      for v = math.ceil(e.ymin / gy) * gy, e.ymax, gy do gc:drawLine(x, sy(v), x + w, sy(v)) end
+    if (ymax - ymin) / gy < 60 then
+      for v = math.ceil(ymin / gy) * gy, ymax, gy do gc:drawLine(x, sy(v), x + w, sy(v)) end
     end
   end
   setc(gc, 0x707070)
-  if e.ymin <= 0 and e.ymax >= 0 then gc:drawLine(x, sy(0), x + w, sy(0)) end
+  if ymin <= 0 and ymax >= 0 then gc:drawLine(x, sy(0), x + w, sy(0)) end
   if e.xmin <= 0 and e.xmax >= 0 then gc:drawLine(sx(0), y, sx(0), y + h) end
-  local data = graphData(key, e)
   for fi, f in ipairs(e.fns) do
     setc(gc, f.color, 0x1060D0)
     gc:setPen("medium", "smooth")
@@ -279,7 +312,7 @@ local function drawGraph(gc, key, e, x, y, w, h)
     local px, py
     for k = 0, d.n do
       local v = d.pts[k]
-      if v and v == v and v > e.ymin - 10 * (e.ymax - e.ymin) and v < e.ymax + 10 * (e.ymax - e.ymin) then
+      if v and v == v and v > ymin - 10 * (ymax - ymin) and v < ymax + 10 * (ymax - ymin) then
         local X, Y = sx(e.xmin + k * step), sy(v)
         if px then gc:drawLine(px, py, X, Y) end
         px, py = X, Y
@@ -292,9 +325,9 @@ local function drawGraph(gc, key, e, x, y, w, h)
   gc:clipRect("reset")
   setc(gc, 0xB0B0B0); gc:drawRect(x, y, w - 1, h - 1)
   font(gc, "r", 7); setc(gc, 0x707070)
-  gc:drawString(tostring(e.ymax), x + 2, y + 1, "top")
-  gc:drawString(tostring(e.ymin), x + 2, y + h - 1, "bottom")
-  local s = tostring(e.xmax)
+  gc:drawString(fmtNum(ymax), x + 2, y + 1, "top")
+  gc:drawString(fmtNum(ymin), x + 2, y + h - 1, "bottom")
+  local s = fmtNum(e.xmax)
   gc:drawString(s, x + w - 2 - gc:getStringWidth(s), y + h - 1, "bottom")
 end
 

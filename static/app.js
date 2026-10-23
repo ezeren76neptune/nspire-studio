@@ -375,8 +375,27 @@ function drawField(e, x, y, w, hh, value, focused, isOut) {
   if (unit) { font('r', 10); sg.fillStyle = doc.theme.fg; sg.fillText(unit, bx + bw + 4, ty); }
 }
 
+function niceStep(span) {
+  const p = Math.pow(10, Math.floor(Math.log10(span / 5)));
+  for (const m of [1, 2, 5, 10]) if (span / (m * p) <= 6) return m * p;
+  return 10 * p;
+}
+function graphRange(e) {
+  let ymin = +e.ymin, ymax = +e.ymax, gy = +e.gy || 1;
+  if (e.yauto) {
+    let lo = Infinity, hi = -Infinity;
+    for (const pts of graphPoints(e)) for (const v of pts) if (v != null && isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    if (lo <= hi) {
+      if (hi - lo < 1e-12 * Math.max(1, Math.abs(hi))) { lo -= 1; hi += 1; }
+      const pad = (hi - lo) * 0.08;
+      ymin = lo - pad; ymax = hi + pad; gy = niceStep(ymax - ymin);
+    }
+  }
+  return { ymin, ymax, gy };
+}
 function drawGraph(e, x, y, w, hh) {
-  const xmin = +e.xmin, xmax = +e.xmax, ymin = +e.ymin, ymax = +e.ymax;
+  const xmin = +e.xmin, xmax = +e.xmax;
+  const { ymin, ymax, gy } = graphRange(e);
   sg.fillStyle = '#fff'; sg.fillRect(x, y, w, hh);
   if (!(xmax > xmin && ymax > ymin)) { font('r', 9); sg.fillStyle = '#c33'; sg.fillText('min must be < max', x + 4, y + 4); return; }
   const sx = v => x + (v - xmin) / (xmax - xmin) * (w - 1);
@@ -385,7 +404,7 @@ function drawGraph(e, x, y, w, hh) {
   const line = (x1, y1, x2, y2) => { sg.beginPath(); sg.moveTo(Math.round(x1) + .5, Math.round(y1) + .5); sg.lineTo(Math.round(x2) + .5, Math.round(y2) + .5); sg.stroke(); };
   if (e.grid) {
     sg.strokeStyle = '#e4e4e4';
-    const gx = +e.gx || 1, gy = +e.gy || 1;
+    const gx = +e.gx || 1;
     if ((xmax - xmin) / gx < 60) for (let v = Math.ceil(xmin / gx) * gx; v <= xmax; v += gx) line(sx(v), y, sx(v), y + hh);
     if ((ymax - ymin) / gy < 60) for (let v = Math.ceil(ymin / gy) * gy; v <= ymax; v += gy) line(x, sy(v), x + w, sy(v));
   }
@@ -407,7 +426,7 @@ function drawGraph(e, x, y, w, hh) {
   sg.lineWidth = 1; sg.restore();
   sg.strokeStyle = '#b0b0b0'; sg.strokeRect(x + .5, y + .5, w - 1, hh - 1);
   font('r', 7); sg.fillStyle = '#707070';
-  const num = v => String(+(+v).toPrecision(6));
+  const num = v => Math.abs(v) < 1e-12 ? '0' : String(+(+v).toPrecision(4));
   sg.textBaseline = 'top'; sg.fillText(num(ymax), x + 2, y + 1);
   sg.textBaseline = 'bottom'; sg.fillText(num(ymin), x + 2, y + hh - 1);
   const s = num(xmax); sg.fillText(s, x + w - 2 - sw(s), y + hh - 1);
@@ -868,6 +887,7 @@ function editorFor(e) {
       return [list, h('div', { class: 'grid2' },
         fNum(e, 'xmin', 'x min', { step: 'any' }), fNum(e, 'xmax', 'x max', { step: 'any' }),
         fNum(e, 'ymin', 'y min', { step: 'any' }), fNum(e, 'ymax', 'y max', { step: 'any' }),
+        h('label', { class: 'chk' }, bind(e, 'yauto', h('input', { type: 'checkbox', checked: e.yauto })), 'Auto y-range'),
         fNum(e, 'gx', 'Grid x step', { step: 'any', min: 0 }), fNum(e, 'gy', 'Grid y step', { step: 'any', min: 0 }),
         fNum(e, 'h', 'Height (px)', { min: 40, max: H - TABH - 8 }),
         h('label', { class: 'chk' }, bind(e, 'grid', h('input', { type: 'checkbox', checked: e.grid })), 'Show grid')),

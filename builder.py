@@ -165,12 +165,13 @@ def convert(doc):
                        for f in e.get("fns", []) if (f.get("expr") or "").strip()]
                 xmin, xmax = num(e.get("xmin"), -10), num(e.get("xmax"), 10)
                 ymin, ymax = num(e.get("ymin"), -10), num(e.get("ymax"), 10)
-                if xmax <= xmin or ymax <= ymin:
+                if xmax <= xmin or (ymax <= ymin and not e.get("yauto")):
                     raise BuildError("A graph has min >= max")
                 items.append({"t": "graph", "h": int(e.get("h", 120)), "fns": fns,
                               "xmin": xmin, "xmax": xmax, "ymin": ymin, "ymax": ymax,
                               "grid": bool(e.get("grid", True)), "gx": num(e.get("gx"), 1),
-                              "gy": num(e.get("gy"), 1), "samples": int(e.get("samples", 120))})
+                              "gy": num(e.get("gy"), 1), "samples": int(e.get("samples", 120)),
+                              "yauto": bool(e.get("yauto", False))})
             elif t == "input":
                 items.append({"t": "in", "label": e.get("label", ""), "var": e.get("var", "").strip(),
                               "value": e.get("value", ""), "unit": e.get("unit", "")})
